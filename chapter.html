@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>dance</title>
+<style>
+  body { margin: 0; background: #fff; }
+  .img, .txt { position: fixed; }
+  .img { object-fit: contain; }
+  .txt { margin: 0; text-align: center; white-space: nowrap; }
+</style>
+</head>
+<body>
+<script>
+// 이미지: x, y, w, h (px)
+// 텍스트: tx, ty (px) → 텍스트 박스의 가운데 위쪽 기준점, 이미지와 완전히 독립
+const chapters = [
+  { x: 100,  y: 200, w: 200, h: 250, link: 'page1.html', text: 'Chapter 1', tx: 200,  ty: 480 },
+  { x: 350,  y: 200, w: 200, h: 250, link: 'page2.html', text: 'Chapter 2', tx: 450,  ty: 480 },
+  { x: 600,  y: 200, w: 200, h: 250, link: 'page3.html', text: 'Chapter 3', tx: 700,  ty: 480 },
+  { x: 850,  y: 200, w: 200, h: 250, link: 'page4.html', text: 'Chapter 4', tx: 950,  ty: 480 },
+  { x: 1100, y: 200, w: 200, h: 250, link: 'page5.html', text: 'Chapter 5', tx: 1200, ty: 480 },
+];
+
+chapters.forEach((c, i) => {
+  const n = i + 1;
+
+  // 이미지 (fixed)
+  const img = document.createElement('img');
+  img.className = 'img';
+  img.src = `${n}.png`;
+  img.style.cssText = `left:${c.x}px; top:${c.y}px; width:${c.w}px; height:${c.h}px;`;
+  document.body.appendChild(img);
+
+  // 텍스트 (fixed, 이미지와 별개 좌표)
+  const p = document.createElement('p');
+  p.className = 'txt';
+  p.textContent = c.text;
+  p.style.cssText = `left:${c.tx}px; top:${c.ty}px; transform:translateX(-50%);`;
+  document.body.appendChild(p);
+
+  // 원본 png 투명도 검사용 캔버스
+  const cv = document.createElement('canvas');
+  const ctx = cv.getContext('2d');
+  const base = new Image();
+  base.src = `${n}.png`;
+  base.onload = () => {
+    cv.width = base.naturalWidth;
+    cv.height = base.naturalHeight;
+    ctx.drawImage(base, 0, 0);
+  };
+
+  // 마우스 위치가 불투명 픽셀인지 확인
+  const isOpaque = (e) => {
+    const r = img.getBoundingClientRect();
+    const x = Math.floor((e.clientX - r.left) / r.width * cv.width);
+    const y = Math.floor((e.clientY - r.top) / r.height * cv.height);
+    return ctx.getImageData(x, y, 1, 1).data[3] > 10;
+  };
+
+  img.onmousemove = (e) => {
+    const on = isOpaque(e);
+    img.src = on ? `${n}_hover.png` : `${n}.png`;
+    img.style.cursor = on ? 'pointer' : 'default';
+  };
+  img.onmouseleave = () => (img.src = `${n}.png`);
+  img.onclick = (e) => { if (isOpaque(e)) location.href = c.link; };
+});
+</script>
+</body>
+</html>
