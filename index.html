@@ -1,0 +1,131 @@
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&display=swap" rel="stylesheet">
+	<title>dance</title>
+	<style>
+		html,h1,h2,h3,p{margin: 0; padding: 0}
+		body{font-family: ; 
+			color: #FF2600;
+			font-family: "Source Serif 4", serif;}
+		#bg-video {
+		position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			z-index: -1;}
+		.header {
+			position: fixed;
+			top: 30px;
+			left: 50px;
+			z-index: 1;}
+		h1 {
+			font-size: 110px;
+			font-weight: 600;
+			font-optical-sizing: auto;
+			font-weight: <weight>;
+			font-style: normal;}	
+		h2{
+			margin-top: 8px;
+			font-size: 24px;
+			font-weight: 600;}
+		h3 {
+			font-size: 16px;
+			font-weight: 500;
+			white-space: nowrap;
+			transform: rotate(-90deg);}
+		.side-text {
+			position: fixed;
+			top: 0;
+			right: 30px;
+			width: 40px;
+			height: 100vh;
+			z-index: 1;}
+		.text-box {
+			position: absolute;
+			left: 0;
+			width: 40px;
+			height: 220px;
+			display: flex;
+			align-items: center;
+			justify-content: center;}
+		.text-box:nth-child(1) {
+			top: 0px;}
+		.text-box:nth-child(2) {
+		  top: 400px;}
+		.text-box:nth-child(3) {
+		  top: 780px;}
+		.moving-button {
+			position: fixed;
+			left: 100px;
+			top: 100px;
+			width: 220px;
+			height: 220px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: #FF2600;
+			color: #fff;
+			font-size: 30px;
+			font-weight: 400;
+			white-space: nowrap;
+			z-index: 10;
+			text-decoration: none;
+			text-align: center;}
+	</style>
+</head>
+<body>
+	<video autoplay muted loop playsinline id="bg-video">
+ 		<source src="background.mp4" type="video/mp4">
+ 	</video>
+ 	<header class="header">
+	    <h1>dance</h1>
+	    <h2>— Tracing Billy Elliot</h2>
+	<nav class="side-text">
+	    <div class="text-box">
+	      <h3>Billy Elliot(2000)</h3>
+	    </div>
+	    <div class="text-box">
+	      <h3>Stephen David Daldry</h3>
+	    </div>
+	    <div class="text-box">
+	      <h3>Universal Pictures</h3>
+	    </div>
+  	</nav>
+  	</header>
+  	<a href="chapters.html" class="moving-button" id="movingButton">
+		<span>Let's<br>dance!</span>
+	</a>	
+	<script>
+		const button = document.getElementById("movingButton");
+		let x = 100;
+		let y = 100;
+		// 이동 속도 (px/frame)
+		let dx = 1.5;
+		let dy = 1.2;
+		function move() {
+			const maxX = window.innerWidth - button.offsetWidth;
+			const maxY = window.innerHeight - button.offsetHeight;
+			x += dx;
+			y += dy;
+			if (x >= maxX || x <= 0) {
+				dx *= -1;
+				x = Math.max(0, Math.min(x, maxX));}
+			if (y >= maxY || y <= 0) {
+				dy *= -1;
+				y = Math.max(0, Math.min(y, maxY));}
+			button.style.left = x + "px";
+			button.style.top = y + "px";
+			requestAnimationFrame(move);}
+			move();
+	</script>
+</body>
+</html>
+</body>
+</html>

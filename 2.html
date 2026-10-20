@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>dance</title>
+<style>
+:root{--bg:#14141A;--fg:#F5F1E8;box-sizing:border-box}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14141A;--fg:#F5F1E8}}
+:root[data-theme="dark"]{--bg:#14141A;--fg:#F5F1E8}
+*{margin:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font-family:"Noto Sans KR","Apple SD Gothic Neo",sans-serif}
+#v,#cv{position:fixed;inset:0;width:100%;height:100%}
+#v{object-fit:cover;display:none}
+#cv{touch-action:none;cursor:crosshair;user-select:none;-webkit-user-select:none}
+#ph{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:14px;line-height:1.6;color:rgba(245,241,232,.4);pointer-events:none}
+#bar{position:fixed;left:0;right:0;bottom:env(safe-area-inset-bottom,0px);height:18px;background:rgba(255,255,255,.3);pointer-events:none}
+#fill{height:100%;width:0;background:rgba(255,255,255,.7)}
+#play{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:88px;height:88px;border-radius:50%;border:0;background:#fff;display:flex;align-items:center;justify-content:center;padding-left:6px;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="ph"></div>
+<video id="v" playsinline preload="auto"></video>
+<canvas id="cv"></canvas>
+<div id="bar"><div id="fill"></div></div>
+<button id="play" aria-label="재생"><svg viewBox="0 0 24 24" width="36" height="36"><polygon points="8,5 19,12 8,19" fill="#14141A"/></svg></button>
+<script>
+const $=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d'),v=$('v'),fill=$('fill');
+const VIDEO_SRC='mp2.mp4';            // 호스팅한 mp4 주소를 넣으면 자동으로 불러옵니다
+const FALLBACK=30;             // 영상이 없을 때의 재생바 길이(초)
+const HOLD=.9; const TRAIL=1.6;               // 궤적이 사라지는 시간(초)
+const COL=['#FF3511','#FFFFFF','#C390EA','#E5D6B0','#A7FF0E','#FF0EF3'];
+let W=0,H=0,objs=[],trails=[],bits=[],started=false,hasVideo=false,t0=0,last=performance.now();
+
+function resize(){const d=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0)}
+addEventListener('resize',resize);resize();
+
+function setVideo(src){v.src=src;v.style.display='block';hasVideo=true;started=false;fill.style.width='0';$('play').style.display='flex'}
+if(VIDEO_SRC)setVideo(VIDEO_SRC);
+addEventListener('dragover',e=>e.preventDefault());
+addEventListener('drop',e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('video/'))setVideo(URL.createObjectURL(f))});
+
+function spawn(x,y){
+  const vm=Math.min(W,H);
+  objs.push({x,y,vx:(Math.random()-.5)*vm*1.25,vy:-H*(.7+Math.random()*1.1),
+    r:vm*(.025+Math.random()*.035),rot:Math.random()*6.28,vr:(Math.random()-.5)*8,
+    type:Math.floor(Math.random()*4),c:COL[Math.floor(Math.random()*COL.length)],
+    e:.7+Math.random()*.26,n:0,line:null});
+  if(objs.length>40){const d=objs.shift();if(d.line)d.line.alive=false}
+}
+function start(){if(started)return;started=true;v.muted=false;if(hasVideo)v.play().catch(()=>{});else t0=performance.now();$('play').style.display='none'}
+$('play').addEventListener('click',start);
+const SPAWN_MS=200;          // 꾹 누르고 있을 때 개체가 생성되는 간격(ms)
+let hold=null;
+cv.addEventListener('pointermove',e=>{if(hold&&Math.hypot(e.clientX-hold.x,e.clientY-hold.y)>12)hold=null});
+const rel=()=>{hold=null};
+cv.addEventListener('pointerup',rel);cv.addEventListener('pointercancel',rel);cv.addEventListener('pointerleave',rel);
+cv.addEventListener('pointerdown',e=>{
+  if(!started)return;
+  spawn(e.clientX,e.clientY);hold={x:e.clientX,y:e.clientY,t:performance.now()};
+});
+
+function shatter(o){
+  const vm=Math.min(W,H)/800;
+  for(let i=0;i<14;i++){const a=Math.random()*6.28,s=H*(.2+Math.random()*.6);
+    bits.push({x:o.x,y:o.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-H*.15,r:Math.max(1.5,(1.2+Math.random()*2)*vm),c:o.c,t:performance.now(),life:450+Math.random()*250})}
+}
+function shape(o){
+  const r=o.r;ctx.save();ctx.translate(o.x,o.y);ctx.rotate(o.rot);ctx.fillStyle=o.c;ctx.beginPath();
+  if(o.type===0)ctx.arc(0,0,r,0,7);
+  else if(o.type===1)ctx.rect(-r*.7,-r*.7,r*1.4,r*1.4);
+  else if(o.type===2){for(let i=0;i<3;i++){const a=-Math.PI/2+i*Math.PI*2/3;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.closePath()}
+  else{for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.45:r;ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr)}ctx.closePath()}
+  ctx.fill();ctx.restore();
+}
+
+function drawTrails(now){
+  const L=TRAIL*1000,Hd=HOLD*1000;
+  ctx.lineJoin='round';ctx.lineCap='butt';
+  for(let i=trails.length-1;i>=0;i--){
+    const t=trails[i],p=t.pts;
+    let k=0;while(k<p.length&&now-p[k].t>L)k++;
+    if(k)p.splice(0,k);
+    if(!p.length){if(!t.alive)trails.splice(i,1);continue}
+    ctx.strokeStyle=t.c;ctx.lineWidth=t.w;
+    let s=0;while(s<p.length&&now-p[s].t>Hd)s++;
+    for(let j=1;j<=s&&j<p.length;j++){const age=now-p[j-1].t;ctx.globalAlpha=Math.max(0,.5*(1-(age-Hd)/(L-Hd)));ctx.beginPath();ctx.moveTo(p[j-1].x,p[j-1].y);ctx.lineTo(p[j].x,p[j].y);ctx.stroke()}
+    if(s<p.length-1){ctx.globalAlpha=.5;ctx.beginPath();ctx.moveTo(p[s].x,p[s].y);for(let j=s+1;j<p.length;j++)ctx.lineTo(p[j].x,p[j].y);ctx.stroke()}
+  }
+  ctx.globalAlpha=1;
+}
+function loop(now){
+  const dt=Math.min((now-last)/1000,.033),G=H*2.4;last=now;
+  if(hold&&now-hold.t>=SPAWN_MS){hold.t=now;spawn(hold.x,hold.y)}
+  ctx.clearRect(0,0,W,H);
+
+  for(let i=objs.length-1;i>=0;i--){
+    const o=objs[i],px=o.x,py=o.y;
+    o.vy+=G*dt;o.x+=o.vx*dt;o.y+=o.vy*dt;o.rot+=o.vr*dt;
+    if(o.x<-o.r*2||o.x>W+o.r*2){if(o.line)o.line.alive=false;objs.splice(i,1);continue}
+    
+    if(!o.line){o.line={c:o.c,w:Math.max(2,o.r*.4),pts:[{x:px,y:py,t:now}],alive:true};trails.push(o.line)}o.line.pts.push({x:o.x,y:o.y,t:now});
+    if(o.y+o.r>=H&&o.vy>0){
+      o.y=H-o.r;o.n++;
+      if(o.n>=4){if(o.line)o.line.alive=false;shatter(o);objs.splice(i,1);continue}
+      o.vy=-Math.max(o.vy*Math.min(o.e*(.9+Math.random()*.2),.98),H*.6);o.vx*=.95;
+    }
+  }
+
+  drawTrails(now);
+  
+  
+  
+  ctx.globalAlpha=1;
+
+  for(const o of objs)shape(o);
+
+  for(let i=bits.length-1;i>=0;i--){
+    const b=bits[i],age=now-b.t;
+    if(age>b.life){bits.splice(i,1);continue}
+    b.vy+=G*.5*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;
+    ctx.globalAlpha=1-age/b.life;ctx.fillStyle=b.c;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,7);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  let p=0;
+  if(hasVideo){if(v.duration)p=v.currentTime/v.duration}
+  else if(started)p=Math.min((now-t0)/1000/FALLBACK,1);
+  fill.style.width=p*100+'%';
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
